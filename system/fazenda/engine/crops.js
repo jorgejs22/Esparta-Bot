@@ -82,8 +82,40 @@ const producoes = {
 	}
 };
 
-function getCrop(tipo) {
-	return producoes[tipo];
+function normalizeCropKey(value) {
+	if (!value || typeof value !== 'string') return null;
+	return value
+		.trim()
+		.toLowerCase()
+		.normalize('NFD')
+		.replace(/\p{Diacritic}/gu, '')
+		.replace(/[\s-]+/g, '_')
+		.replace(/[^a-z0-9_]/g, '');
 }
 
-module.exports = { getCrop };
+const cropAliases = {};
+Object.keys(producoes).forEach(key => {
+	const crop = producoes[key];
+	cropAliases[key] = key;
+	if (crop.nome) {
+		cropAliases[normalizeCropKey(crop.nome)] = key;
+	}
+	if (crop.produto) {
+		cropAliases[normalizeCropKey(crop.produto)] = key;
+	}
+});
+
+function getCrop(tipo) {
+	if (!tipo) return null;
+	const normalized = normalizeCropKey(tipo);
+	const targetKey = cropAliases[normalized];
+	return targetKey ? producoes[targetKey] : null;
+}
+
+function getCropKey(tipo) {
+	if (!tipo) return null;
+	const normalized = normalizeCropKey(tipo);
+	return cropAliases[normalized] || null;
+}
+
+module.exports = { getCrop, getCropKey, normalizeCropKey };

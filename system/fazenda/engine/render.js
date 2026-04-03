@@ -2,14 +2,33 @@ const { createCanvas } = require("canvas");
 const { getBiome } = require("./biome");
 const { getCrop } = require("./crops");
 // ================= TIME =================
-function getTimeData() {
-    const now = new Date();
-    const hours = now.getHours() + now.getMinutes() / 60;
-    const t = hours / 24;
+function getTimeData(forceHour = null) {
+    let hours;
+
+    if (forceHour !== null) {
+        // Modo teste: usar hora forçada
+        hours = forceHour;
+    } else {
+        // Pegar hora real do Brasil (Brasília - UTC-3)
+        const now = new Date();
+
+        // Usa timeZone com toLocaleString para evitar a parsing insegura de strings em alguns ambientes.
+        // Não depende de DateTimeFormat.parts para maior compatibilidade.
+        const localDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+
+        const h = typeof localDate.getHours === 'function' ? localDate.getHours() : now.getUTCHours();
+        const m = typeof localDate.getMinutes === 'function' ? localDate.getMinutes() : now.getUTCMinutes();
+        const s = typeof localDate.getSeconds === 'function' ? localDate.getSeconds() : now.getUTCSeconds();
+
+        hours = h + m / 60 + s / 3600;
+    }
+
+    const t = (hours % 24) / 24;
 
     return {
         t,
-        isNight: t < 0.25 || t > 0.75
+        isNight: t < 0.25 || t > 0.75,
+        hour: hours % 24
     };
 }
 
@@ -70,24 +89,63 @@ function drawSky(ctx, w, h, biome, time) {
 // ================= SUN / MOON =================
 function drawSunMoon(ctx, w, h, time) {
 
-    const angle = time.t * Math.PI * 2;
+    // trajetória no céu
+    const baseAngle = time.t * Math.PI * 2 - Math.PI / 2;
+    const orbitCenterX = w / 2;
+    const orbitCenterY = h * 0.28; // topo de céu
+    const radiusX = w * 0.35;
+    const radiusY = h * 0.22;
 
-    const x = w / 2 + Math.cos(angle) * 400;
-    const y = h / 2 + Math.sin(angle) * 250;
+    // Sol (visível no dia)
+    const sunX = orbitCenterX + Math.cos(baseAngle) * radiusX;
+    const sunY = orbitCenterY + Math.sin(baseAngle) * radiusY;
 
-    if (time.isNight) {
-        ctx.fillStyle = "#ddd";
-    } else {
-        const grad = ctx.createRadialGradient(x, y, 10, x, y, 100);
-        grad.addColorStop(0, "#fff176");
-        grad.addColorStop(1, "rgba(255,255,150,0)");
+    // Lua (travessia oposta)
+    const moonAngle = baseAngle + Math.PI;
+    const moonX = orbitCenterX + Math.cos(moonAngle) * radiusX;
+    const moonY = orbitCenterY + Math.sin(moonAngle) * radiusY;
+
+    if (!time.isNight) {
+        const grad = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 140);
+        grad.addColorStop(0, "rgba(255, 244, 79, 0.95)");
+        grad.addColorStop(0.4, "rgba(255, 183, 77, 0.65)");
+        grad.addColorStop(1, "rgba(255, 167, 38, 0.05)");
+
         ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, 90, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, 32, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
     }
 
-    ctx.beginPath();
-    ctx.arc(x, y, 45, 0, Math.PI * 2);
-    ctx.fill();
+    if (time.isNight) {
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.beginPath();
+        ctx.arc(moonX, moonY, 28, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Lua com forma de crescente sutil
+        ctx.fillStyle = "rgba(20, 30, 60, 0.75)";
+        ctx.beginPath();
+        ctx.arc(moonX + 10, moonY - 4, 22, 0, Math.PI * 2);
+        ctx.fill();
+
+        // contorno
+        ctx.strokeStyle = "rgba(255,255,255,0.8)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(moonX, moonY, 28, 0, Math.PI * 2);
+        ctx.stroke();
+    }
 }
+
 
 // ================= STARS =================
 function drawStars(ctx, w, h, time, seed) {
@@ -150,12 +208,17 @@ function drawMountains(ctx, w, h, seed) {
 }
 
 // ================= NEBLINA ===============
-function drawAtmosphere(ctx, w, h) {
+function drawAtmosphere(ctx, w, h, time) {
 
     const grad = ctx.createLinearGradient(0, 0, 0, h);
 
-    grad.addColorStop(0, "rgba(255,255,255,0)");
-    grad.addColorStop(1, "rgba(255,255,255,0.25)");
+    if (time && time.isNight) {
+        grad.addColorStop(0, "rgba(10,15,35,0.0)");
+        grad.addColorStop(1, "rgba(10,15,35,0.22)");
+    } else {
+        grad.addColorStop(0, "rgba(255,255,255,0.0)");
+        grad.addColorStop(1, "rgba(255,255,255,0.20)");
+    }
 
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
@@ -200,19 +263,18 @@ function drawClouds(ctx, w, h, clima, seed, time) {
 
     if (clima === "clear") return;
 
+    const offset = (time.t * w * 0.6) + ((Date.now() / 15000) % w);
+
     for (let i = 0; i < 6; i++) {
 
         const base = seededRandom(seed + i * 9999);
 
-        // ⏳ movimento no tempo
-        const drift = (Date.now() / 10000) % w;
-
-        const x = (base * w + drift) % w;
+        const x = (base * w + offset + i * 30) % w;
         const y = 40 + i * 30;
 
         ctx.fillStyle = clima === "rain"
             ? "rgba(120,120,120,0.9)"
-            : "rgba(200,200,200,0.8)";
+            : "rgba(240,240,240,0.85)";
 
         ctx.beginPath();
         ctx.arc(x, y, 30, 0, Math.PI * 2);
@@ -486,6 +548,14 @@ function drawForegroundTrees(ctx, w, h, light) {
 // ================= PLANT =================
 function drawPlant(ctx, x, y, scale, crop, progress, wind, light) {
 
+    // Fallback caso crop seja undefined
+    if (!crop || !crop.stem || !crop.fruit) {
+        crop = {
+            stem: "#8b7355",
+            fruit: "#8b4513"
+        };
+    }
+
     ctx.fillStyle = "rgba(0,0,0,0.2)";
     ctx.beginPath();
     ctx.ellipse(
@@ -596,32 +666,60 @@ function drawField(ctx, crop, progress, w, h, wind, light, seed) {
 
 
 // ================= HUD =================
-function drawHUD(ctx, fazenda, progress) {
+function drawHUD(ctx, fazenda, progress, time) {
 
     ctx.fillStyle = "rgba(0,0,0,0.4)";
-    ctx.fillRect(20, 20, 420, 110);
+    ctx.fillRect(20, 20, 420, 135);
 
     ctx.fillStyle = "#fff";
     ctx.font = "bold 24px sans-serif";
-    ctx.fillText(`🌱 Fazenda de ${fazenda.tipo_producao}`, 30, 55);
+    ctx.fillText(`Fazenda de ${fazenda.tipo_producao}`, 30, 55);
 
     ctx.font = "14px sans-serif";
     ctx.fillStyle = "#ccc";
     ctx.fillText(`📍 ${fazenda.provincia}`, 30, 80);
 
+    let timeDisplay = "--:--";
+    let label = "Desconhecido";
+    let icon = "⚪";
+
+    if (time && typeof time === 'object') {
+        const hour = Math.floor(time.hour || 0);
+        const min = String(Math.floor(((time.hour || 0) % 1) * 60)).padStart(2, '0');
+        timeDisplay = `${hour.toString().padStart(2, '0')}:${min}`;
+
+        if (time.isNight) {
+            label = "Noite";
+            icon = "⚪";
+        } else {
+            label = "Dia";
+            icon = "☀️";
+        }
+    }
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 16px sans-serif";
+    ctx.fillText(`${icon} - ${label} - ${timeDisplay}`, 30, 110);
+
     ctx.fillStyle = "#222";
-    ctx.fillRect(30, 95, 300, 12);
+    ctx.fillRect(30, 120, 300, 12);
 
     ctx.fillStyle = "#4caf50";
-    ctx.fillRect(30, 95, 300 * progress, 12);
+    ctx.fillRect(30, 120, 300 * progress, 12);
+
+    ctx.fillStyle = "#222";
+    ctx.fillRect(30, 120, 300, 12);
+
+    ctx.fillStyle = "#4caf50";
+    ctx.fillRect(30, 120, 300 * progress, 12);
 
     ctx.fillStyle = "#fff";
     ctx.font = "bold 12px sans-serif";
-    ctx.fillText(`${Math.floor(progress * 100)}%`, 340, 105);
+    ctx.fillText(`${Math.floor(progress * 100)}%`, 340, 130);
 }
 
 // ================= MAIN =================
-async function renderFazenda(fazenda, progress) {
+async function renderFazenda(fazenda, progress, forceHour = null) {
 
     const seedBase = gerarSeed(
         fazenda.provincia + "_" + fazenda.tipo_producao
@@ -659,7 +757,10 @@ async function renderFazenda(fazenda, progress) {
         fruit: "#8b4513"
     };
     
-    const time = getTimeData();
+    const time = getTimeData(forceHour);
+    
+    // DEBUG: Logar informações de tempo
+    console.log(`🌍 [RENDER] Hora: ${time.hour.toFixed(2)}, Noite? ${time.isNight}, t=${time.t.toFixed(3)}`);
 
     const light = getSunLight(time);
     const wind = getWind(fazenda.clima || "cloudy");
@@ -672,8 +773,8 @@ async function renderFazenda(fazenda, progress) {
 
     drawMountains(ctx, w, h, seedBase);
     drawHills(ctx, w, h);
-    drawAtmosphere(ctx, w, h);
-    drawClouds(ctx, w, h, fazenda.clima, seedBase);
+    drawAtmosphere(ctx, w, h, time);
+    drawClouds(ctx, w, h, fazenda.clima, seedBase, time);
     drawRain(ctx, w, h, fazenda.clima);
 
     drawFieldArea(ctx, w, h, seedBase);                 // 🌱 base do terreno
@@ -688,7 +789,7 @@ async function renderFazenda(fazenda, progress) {
 
     drawFog(ctx, w, h, fazenda.clima, time);
 
-    drawHUD(ctx, fazenda, progress);
+    drawHUD(ctx, fazenda, progress, time);
 
     return canvas.toBuffer("image/png");
 }

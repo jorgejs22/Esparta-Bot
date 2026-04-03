@@ -235,10 +235,20 @@ client.on('interactionCreate', async interaction => {
 
   if (interaction.customId === "fazenda_add") {
 
-    const tipo_produto = interaction.fields.getTextInputValue("fazenda_add_produto");
+    const tipo_produto_raw = interaction.fields.getTextInputValue("fazenda_add_produto");
     const provincia = interaction.fields.getTextInputValue("fazenda_add_provincia");
     const preco_base = parseInt(interaction.fields.getTextInputValue("fazenda_add_precobase"));
     const estoque = parseInt(interaction.fields.getTextInputValue("fazenda_add_estoque"));
+
+    const { getCropKey } = require('./system/fazenda/engine/crops');
+    const tipo_produto = getCropKey(tipo_produto_raw);
+
+    if (!tipo_produto) {
+      return interaction.reply({
+        content: `❌ Tipo de produto inválido. Use: café, trigo, algodão, cana de açúcar, feijão, milho, arroz, soja ou mandioca.`,
+        ephemeral: true
+      });
+    }
 
     const territorio = ["Termópilas", "Virteskem", "Houz", "Nirvrade", "Zeruz", "Leveron", "Tebas", "Argos", "Ertrug"]
     if (!territorio.includes(provincia)) {
