@@ -16,20 +16,32 @@ const client = new Client({
 });
 
 client.commands = new Collection();
+
+const PORT = Number(process.env.PORT || 10000);
+const HOST = process.env.HOST || "0.0.0.0";
+
+if (!PORT || Number.isNaN(PORT)) {
+  console.error(`❌ Porta inválida detectada: ${process.env.PORT}`);
+  process.exit(1);
+}
+
+console.log(`🔌 Iniciando servidor HTTP em ${HOST}:${PORT}`);
+
+
 const healthServer = http.createServer((req, res) => {
-    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
-      res.end("Omega Quantum Bot está online");
-      });
+  res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end("Omega Quantum Bot está online");
+});
 
-      healthServer.on("error", (error) => {
-        console.error(`❌ Erro no servidor HTTP: ${error.message}`);
-          process.exit(1);
-          });
+healthServer.on("error", (error) => {
+  console.error(`❌ Erro no servidor HTTP: ${error.message}`);
+  process.exit(1);
+});
 
-          healthServer.listen({ port: PORT, host: HOST }, () => {
-            const addr = healthServer.address();
-              console.log(`🌐 Servidor de saúde ouvindo em ${addr.address}:${addr.port}`);
-              });
+healthServer.listen({ port: PORT, host: HOST }, () => {
+  const addr = healthServer.address();
+  console.log(`🌐 Servidor de saúde ouvindo em ${addr.address}:${addr.port}`);
+});
 function loadCommands(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
 
@@ -489,17 +501,17 @@ client.on('interactionCreate', async interaction => {
     })
   }
 
-  if(interaction.isStringSelectMenu() && interaction.customId === "plantar_quantidade") {
+  if (interaction.isStringSelectMenu() && interaction.customId === "plantar_quantidade") {
 
     const modal = new ModalBuilder()
-    .setCustomId(`plantar_qtd`)
-    .setTitle("Plantar Sementes");
+      .setCustomId(`plantar_qtd`)
+      .setTitle("Plantar Sementes");
 
     const input = new TextInputBuilder()
-    .setCustomId("qtd_plantio")
-    .setLabel("Quantidade de sementes a plantar")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true);
+      .setCustomId("qtd_plantio")
+      .setLabel("Quantidade de sementes a plantar")
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
 
     modal.addComponents(new ActionRowBuilder().addComponents(input));
 
@@ -507,36 +519,36 @@ client.on('interactionCreate', async interaction => {
 
   }
 
-  if(interaction.customId === "plantar_qtd") {
+  if (interaction.customId === "plantar_qtd") {
     const quantidade = parseInt(interaction.fields.getTextInputValue("qtd_plantio"));
     const userId = interaction.user.id;
 
-    if(isNaN(quantidade) || quantidade <= 0) {
+    if (isNaN(quantidade) || quantidade <= 0) {
       return interaction.reply({
         content: `❌ Quantidade inválida.`,
         ephemeral: true,
       })
     }
 
-    
+
     const fazenda = Database.prepare(`SELECT * FROM fazendas `).get(userId);
 
-    if(interaction.user.id !== fazenda.donoId) {
+    if (interaction.user.id !== fazenda.donoId) {
       return interaction.reply({
         content: `❌ Esta não é sua fazenda.`,
         ephemeral: true,
       })
     }
-      Database.prepare(`UPDATE inventario SET quantidade = quantidade - 1 WHERE userId = ? AND item = ?`).run(userId, `semente_${fazenda.tipo_producao}`);
-      Database.prepare(`UPDATE fazendas SET ultimo_plantio = ? WHERE id = ?`).run(Date.now(), fazenda.id);
+    Database.prepare(`UPDATE inventario SET quantidade = quantidade - 1 WHERE userId = ? AND item = ?`).run(userId, `semente_${fazenda.tipo_producao}`);
+    Database.prepare(`UPDATE fazendas SET ultimo_plantio = ? WHERE id = ?`).run(Date.now(), fazenda.id);
 
-      return interaction.reply({
-        content: `🌱 Você plantou ${quantidade} sementes`,
-        ephemeral: true
-      })
+    return interaction.reply({
+      content: `🌱 Você plantou ${quantidade} sementes`,
+      ephemeral: true
+    })
   }
 
-  });
+});
 
 process.on('uncaughtException', err => console.error('uncaughtException', err));
 process.on('unhandledRejection', err => console.error('unhandledRejection', err));
