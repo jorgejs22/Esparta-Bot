@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { Client, Collection, GatewayIntentBits, Partials, StringSelectMenuBuilder, ActionRowBuilder, InteractionResponse, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const fs = require('fs');
+const http = require("http");
 const path = require('path');
 const { Database } = require('./database');
 
@@ -15,7 +16,20 @@ const client = new Client({
 });
 
 client.commands = new Collection();
+const healthServer = http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Omega Quantum Bot está online");
+      });
 
+      healthServer.on("error", (error) => {
+        console.error(`❌ Erro no servidor HTTP: ${error.message}`);
+          process.exit(1);
+          });
+
+          healthServer.listen({ port: PORT, host: HOST }, () => {
+            const addr = healthServer.address();
+              console.log(`🌐 Servidor de saúde ouvindo em ${addr.address}:${addr.port}`);
+              });
 function loadCommands(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
 
