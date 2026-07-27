@@ -121,51 +121,6 @@ client.on('interactionCreate', async interaction => {
 
     return;
   }
-  if (interaction.isModalSubmit()) {
-    if (interaction.customId === `fazenda_${interaction.user.id}`) {
-
-      const quantidade = interaction.fields.getTextInputValue("fazenda_input")
-
-      const select = new StringSelectMenuBuilder()
-        .setCustomId(`select_fazenda_${quantidade}`)
-        .setPlaceholder("Escolha o que fazer")
-        .addOptions([
-          {
-            label: "Plantar semente",
-            value: "plantar",
-            description: "Plantar as sementes"
-          }, {
-            label: "Vender Sementes",
-            value: "vender",
-            description: "Venda algumas sementes para o Governo"
-          }
-        ])
-
-      const row = new ActionRowBuilder().addComponents(select);
-
-      await interaction.reply({
-        content: `🌾 Quantidade: ${quantidade}`,
-        components: [row]
-      })
-    }
-
-    if (interaction.isStringSelectMenu()) {
-
-      const quantidade = interaction.customId.split('_')[2]
-      const escolha = interaction.values[0];
-
-      if (escolha === "plantar") {
-        await interaction.reply({
-          content: `🌾 Você plantou ${quantidade} sementes!`
-        });
-      }
-      if (escolha === "vender") {
-        await interaction.reply({
-          content: `💰 Você vendeu ${quantidade} sementes pro governo!`
-        });
-      }
-    }
-  }
 
   if (interaction.customId === 'modal_venda_fazenda') {
     const userId = interaction.user.id;
@@ -419,22 +374,29 @@ client.on('interactionCreate', async interaction => {
 
       Database.prepare("BEGIN TRANSACTION").run();
 
-      Database.prepare(`
-              INSERT INTO fazendas (donoId, tipo_producao, provincia, level)
-                  VALUES (?, ?, ?, 1)
-                    `).run(interaction.user.id, fazenda.tipo_produto, provincia);
+      const result = Database.prepare(`
+     INSERT INTO fazendas (donoId, tipo_producao, provincia, level, estoque_kg)
+       VALUES (?, ?, ?, 1, 0)
+      `).run(interaction.user.id, fazenda.tipo_produto, provincia);
+
+      const novaFazendaId = result.lastInsertRowid;
 
       Database.prepare(`
-                          UPDATE fazendas_disponiveis 
-                              SET quantidade = quantidade - ? 
-                                  WHERE id = ?
-                                    `).run(quantidade, id);
+    INSERT INTO fazenda_estoque (fazenda_id, produto, quantidade_kg)
+     VALUES (?, ?, 0)
+     `).run(novaFazendaId, fazenda.tipo_produto);
 
       Database.prepare(`
-                                          UPDATE economia 
-                                              SET dracmas = dracmas - ? 
-                                                  WHERE userId = ?
-                                                    `).run(total, interaction.user.id);
+     UPDATE fazendas_disponiveis 
+        SET quantidade = quantidade - ? 
+        WHERE id = ?
+          `).run(quantidade, id);
+
+      Database.prepare(`
+        UPDATE economia 
+         SET dracmas = dracmas - ? 
+          WHERE userId = ?
+     `).run(total, interaction.user.id);
 
       Database.prepare("COMMIT").run();
 
@@ -503,8 +465,11 @@ client.on('interactionCreate', async interaction => {
 
   if (interaction.isStringSelectMenu() && interaction.customId === "plantar_quantidade") {
 
+    // Pega o ID da fazenda e o crop do value (formato: "plantar:1:cafe")
+    const [_, fazendaId, cropId] = interaction.values[0].split(":");
+
     const modal = new ModalBuilder()
-      .setCustomId(`plantar_qtd`)
+      .setCustomId(`plantar_qtd_${fazendaId}_${cropId}`)
       .setTitle("Plantar Sementes");
 
     const input = new TextInputBuilder()
@@ -516,41 +481,92 @@ client.on('interactionCreate', async interaction => {
     modal.addComponents(new ActionRowBuilder().addComponents(input));
 
     return interaction.showModal(modal);
-
   }
 
-  if (interaction.customId === "plantar_qtd") {
+  if (interaction.customId.startsWith("plantar_qtd_")) {
+    // Formato: plantar_qtd_1_cafe ou plantar_qtd_1_cana_de_acucar
+    const partes = interaction.customId.split("_");
+    // ["plantar", "qtd", "1", "cafe"]
+    const fazendaId = partes[2];
+    const cropId = partes.slice(3).join("_"); // "cafe" ou "cana_de_acucar"
+
     const quantidade = parseInt(interaction.fields.getTextInputValue("qtd_plantio"));
     const userId = interaction.user.id;
 
     if (isNaN(quantidade) || quantidade <= 0) {
       return interaction.reply({
-        content: `❌ Quantidade inválida.`,
-        ephemeral: true,
-      })
+        content: "❌ Quantidade inválida.",
+        ephemeral: true
+      });
     }
 
+    const fazenda = Database.prepare(`SELECT * FROM fazendas WHERE id = ?`).get(fazendaId);
 
-    const fazenda = Database.prepare(`SELECT * FROM fazendas `).get(userId);
-
-    if (interaction.user.id !== fazenda.donoId) {
+    if (!fazenda) {
       return interaction.reply({
-        content: `❌ Esta não é sua fazenda.`,
-        ephemeral: true,
-      })
+        content: "❌ Fazenda não encontrada.",
+        ephemeral: true
+      });
     }
-    Database.prepare(`UPDATE inventario SET quantidade = quantidade - 1 WHERE userId = ? AND item = ?`).run(userId, `semente_${fazenda.tipo_producao}`);
-    Database.prepare(`UPDATE fazendas SET ultimo_plantio = ? WHERE id = ?`).run(Date.now(), fazenda.id);
+
+    if (fazenda.donoId !== userId) {
+      return interaction.reply({
+        content: "❌ Esta não é sua fazenda.",
+        ephemeral: true
+      });
+    }
+
+    if (fazenda.ultimo_plantio) {
+      return interaction.reply({
+        content: "❌ Já há plantação em andamento. Colha primeiro!",
+        ephemeral: true
+      });
+    }
+
+    const semente = `semente_${cropId}`;
+    const inventario = Database.prepare(
+      `SELECT quantidade FROM inventario WHERE userId = ? AND item = ?`
+    ).get(userId, semente);
+
+    if (!inventario || inventario.quantidade < quantidade) {
+      return interaction.reply({
+        content: `❌ Você não tem ${semente} suficiente. Disponível: ${inventario?.quantidade || 0}`,
+        ephemeral: true
+      });
+    }
+
+    Database.prepare(
+      `UPDATE inventario SET quantidade = quantidade - ? WHERE userId = ? AND item = ?`
+    ).run(quantidade, userId, semente);
+
+    Database.prepare(
+      `UPDATE fazendas SET ultimo_plantio = ? WHERE id = ?`
+    ).run(Date.now(), fazendaId);
 
     return interaction.reply({
-      content: `🌱 Você plantou ${quantidade} sementes`,
+      content: `🌱 Você plantou **${quantidade}x ${cropId.replace(/_/g, ' ')}**!`,
       ephemeral: true
     })
   }
 
+  if (interaction.isStringSelectMenu() && interaction.customId === "selecionar_fazenda") {
+    const fazendaId = interaction.values[0].replace("fazenda_", "");
+    const fazenda = Database.prepare(`SELECT * FROM fazendas WHERE id = ?`).get(fazendaId);
+
+    if (!fazenda || fazenda.donoId !== interaction.user.id) {
+      return interaction.reply({
+        content: "❌ Fazenda não encontrada.",
+        ephemeral: true
+      });
+    }
+
+    const { mostrarCanvasFazenda } = require("./commands/Economia/fazenda");
+    return await mostrarCanvasFazenda(interaction, fazenda);
+  }
+
 });
 
-process.on('uncaughtException', err => console.error('uncaughtException', err));
-process.on('unhandledRejection', err => console.error('unhandledRejection', err));
-
-client.login(process.env.DISCORD_TOKEN);
+  process.on('uncaughtException', err => console.error('uncaughtException', err));
+  process.on('unhandledRejection', err => console.error('unhandledRejection', err));
+  
+  client.login(process.env.DISCORD_TOKEN);

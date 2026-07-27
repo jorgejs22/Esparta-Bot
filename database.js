@@ -106,7 +106,16 @@ const DatabaseModule = {
           )
           `).run();
 
-        
+    this.db.prepare(`
+                CREATE TABLE IF NOT EXISTS fazenda_estoque (
+                        fazenda_id INTEGER,
+                                produto TEXT,
+                                        quantidade_kg REAL DEFAULT 0,
+                                                PRIMARY KEY (fazenda_id, produto)
+                                                    )
+                                                    `).run();
+
+
     return Promise.resolve();
   },
 
