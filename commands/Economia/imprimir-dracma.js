@@ -53,7 +53,7 @@ module.exports = {
         mercado.forEach((item) => {
             // Aplicamos apenas o IMPACTO desta impressão ao preço que já está na loja
             const novoPreco = Math.floor(item.preco_base * (1 + impacto));
-            Database.prepare("UPDATE mercado SET preco_base = ? WHERE itemId = ?").run(novoPreco, item.itemId);
+            Database.prepare("UPDATE mercado SET preco_base = ? WHERE id = ?").run(novoPreco, item.id);
         });
 
         // Helper de Símbolo

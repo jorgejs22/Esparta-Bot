@@ -117,7 +117,7 @@ module.exports = {
                                         description: item.estoque > 0
                                                 ? `📦 ${item.estoque} disponíveis`
                                                 : `🚫 Fora de estoque`,
-                                        value: `item:${item.itemId}`,
+                                        value: `item:${item.id}`,
                                         emoji: emoji
                                 };
                         }),

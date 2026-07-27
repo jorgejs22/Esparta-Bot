@@ -64,12 +64,12 @@ module.exports = {
 
         // 🗑️ Deletar
         Database.prepare(`
-          DELETE FROM mercado WHERE itemId = ?
-        `).run(item.itemId)
+          DELETE FROM mercado WHERE id = ?
+        `).run(item.id)
 
         const resultado = Database.prepare(`
-                            DELETE FROM mercado WHERE itemId = ?
-                            `).run(item.itemId);
+                            DELETE FROM mercado WHERE id = ?
+                            `).run(item.id);
         console.log(resultado)
 
         const itens2 = Database.prepare(`

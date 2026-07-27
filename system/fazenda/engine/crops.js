@@ -1,7 +1,7 @@
 const producoes = {
-        cafe: {
-                tipo: "plantacao",
-                semente: "semente_cafe",
+	cafe: {
+		tipo: "plantacao",
+		semente: "semente_cafe",
 		produto: "cafe",
 		nome: "Café",
 		id: "cafe",
