@@ -91,6 +91,7 @@ const DatabaseModule = {
            provincia TEXT,
            tipo_producao TEXT,
            ultimo_plantio INTEGER,
+           sementes_plantadas INTEGER DEFAULT 0,
            level INTEGER DEFAULT 0,
            estoque_kg REAL DEFAULT 0
           )

@@ -558,15 +558,17 @@ client.on('interactionCreate', async interaction => {
       `UPDATE inventario SET quantidade = quantidade - ? WHERE userId = ? AND item = ?`
     ).run(quantidade, userId, semente);
 
+    // ✅ SALVA A QUANTIDADE DE SEMENTES PLANTADAS
     Database.prepare(
-      `UPDATE fazendas SET ultimo_plantio = ? WHERE id = ?`
-    ).run(Date.now(), fazendaId);
+      `UPDATE fazendas SET ultimo_plantio = ?, sementes_plantadas = ? WHERE id = ?`
+    ).run(Date.now(), quantidade, fazendaId);
 
     return interaction.reply({
       content: `🌱 Você plantou **${quantidade}x ${cropId.replace(/_/g, ' ')}**!`,
       ephemeral: true
-    })
+    });
   }
+
 
   if (interaction.isStringSelectMenu() && interaction.customId === "selecionar_fazenda") {
     const fazendaId = interaction.values[0].replace("fazenda_", "");
