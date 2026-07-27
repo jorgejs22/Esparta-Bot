@@ -207,6 +207,23 @@ client.on('interactionCreate', async interaction => {
     Database.prepare(` UPDATE mercado SET estoque = estoque - ? WHERE id = ?
               `).run(quantidade, id);
 
+    const temItem = Database.prepare(
+      `SELECT quantidade FROM inventario WHERE userId = ? AND item = ?`
+    ).get(userId, item.nome);
+
+    if (temItem) {
+      // Já tem, só aumenta quantidade
+      Database.prepare(
+        `UPDATE inventario SET quantidade = quantidade + ? WHERE userId = ? AND item = ?`
+      ).run(quantidade, userId, item.nome);
+    } else {
+      // Não tem, insere novo
+      Database.prepare(
+        `INSERT INTO inventario (userId, item, quantidade) VALUES (?, ?, ?)`
+      ).run(userId, item.nome, quantidade);
+    }
+
+
     // resposta
     return interaction.reply({
       content: `✅ Você comprou ${quantidade}x ${item.nome} por ${total}`,
@@ -566,7 +583,7 @@ client.on('interactionCreate', async interaction => {
 
 });
 
-  process.on('uncaughtException', err => console.error('uncaughtException', err));
-  process.on('unhandledRejection', err => console.error('unhandledRejection', err));
-  
-  client.login(process.env.DISCORD_TOKEN);
+process.on('uncaughtException', err => console.error('uncaughtException', err));
+process.on('unhandledRejection', err => console.error('unhandledRejection', err));
+
+client.login(process.env.DISCORD_TOKEN);
