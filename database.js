@@ -58,7 +58,7 @@ const DatabaseModule = {
 
     this.db.prepare(`
       CREATE TABLE IF NOT EXISTS mercado (
-        itemId INTEGER PRIMARY KEY AUTOINCREMENT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         nome TEXT NOT NULL UNIQUE COLLATE NOCASE,
         preco_base INTEGER NOT NULL,
         descricao TEXT NOT NULL,
@@ -85,7 +85,7 @@ const DatabaseModule = {
             )`).run();
     // Tabela de Propriedades (Fazendas e Casas)
     this.db.prepare(`
-                CREATE TABLE IF NOT EXISTS fazendas (
+           CREATE TABLE IF NOT EXISTS fazendas (
            id INTEGER PRIMARY KEY,
            donoId TEXT,
            provincia TEXT,
