@@ -177,22 +177,19 @@ client.on('interactionCreate', async interaction => {
         ephemeral: true
       });
     }
+
     if (item.estoque < quantidade) {
       return interaction.reply({
         content: `❌ Estoque insuficiente. Disponível: ${item.estoque}`,
         ephemeral: true
       });
     }
-    const user = Database.prepare(`SELECT dracmas FROM economia WHERE userId = ?
-  `).get(userId);
 
-    const inflacao = Database.prepare(`SELECT porcentagem FROM inflacao ORDER BY criado_em DESC LIMIT 1
-  `).get();
-
+    const user = Database.prepare(`SELECT dracmas FROM economia WHERE userId = ?`).get(userId);
+    const inflacao = Database.prepare(`SELECT porcentagem FROM inflacao ORDER BY criado_em DESC LIMIT 1`).get();
     const precoAtual = Math.floor(item.preco_base * (1 + (inflacao?.porcentagem || 0)));
     const total = precoAtual * quantidade;
 
-    // saldo
     if (!user || user.dracmas < total) {
       return interaction.reply({
         content: `❌ Saldo insuficiente. Necessário: ${total}`,
@@ -200,33 +197,38 @@ client.on('interactionCreate', async interaction => {
       });
     }
 
-    // atualizar banco
-    Database.prepare(`UPDATE economia SET dracmas = dracmas - ? WHERE userId = ?
-              `).run(total, userId);
+    // 🔄 Converte nome bonito → nome técnico para inventário
+    let nomeInventario = item.nome;
+    if (item.nome.toLowerCase().includes("semente")) {
+      nomeInventario = item.nome
+        .toLowerCase()
+        .replace("semente de ", "semente_")
+        .replace("semente ", "semente_")
+        .replace(/\s+/g, "_")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
 
-    Database.prepare(` UPDATE mercado SET estoque = estoque - ? WHERE id = ?
-              `).run(quantidade, id);
+    // Atualizar banco
+    Database.prepare(`UPDATE economia SET dracmas = dracmas - ? WHERE userId = ?`).run(total, userId);
+    Database.prepare(`UPDATE mercado SET estoque = estoque - ? WHERE id = ?`).run(quantidade, id);
 
     const temItem = Database.prepare(
       `SELECT quantidade FROM inventario WHERE userId = ? AND item = ?`
-    ).get(userId, item.nome);
+    ).get(userId, nomeInventario);
 
     if (temItem) {
-      // Já tem, só aumenta quantidade
       Database.prepare(
         `UPDATE inventario SET quantidade = quantidade + ? WHERE userId = ? AND item = ?`
-      ).run(quantidade, userId, item.nome);
+      ).run(quantidade, userId, nomeInventario);
     } else {
-      // Não tem, insere novo
       Database.prepare(
         `INSERT INTO inventario (userId, item, quantidade) VALUES (?, ?, ?)`
-      ).run(userId, item.nome, quantidade);
+      ).run(userId, nomeInventario, quantidade);
     }
 
-
-    // resposta
     return interaction.reply({
-      content: `✅ Você comprou ${quantidade}x ${item.nome} por ${total}`,
+      content: `✅ Você comprou ${quantidade}x ${item.nome} por ${total} Dracmas!`,
       ephemeral: true,
     });
   }
