@@ -160,7 +160,7 @@ module.exports = {
         text.setContent(`# Mercado do Império Espartano`),
       );
       container.addSeparatorComponents((separator) => separator);
-      container.addTextDisplayComponents((text) => text.setContent(apresemtacao[categoria]));
+      container.addTextDisplayComponents((text) => text.setContent(apresentacao[categoria]));
       container.addActionRowComponents((row) => row.setComponents(menuRow));
       container.addSeparatorComponents((separator) => separator);
 
@@ -224,7 +224,7 @@ ${disponivel ? "" : "❌ Indisponível"}`.trim();
           });
         }
       }
-      
+
       adicionarFooter(container);
       return container;
     }
