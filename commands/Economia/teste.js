@@ -16,9 +16,18 @@ module.exports = {
       .addTextDisplayComponents((text) => text.setContent(`# Algo aqui`))
       .addSeparatorComponents((separator) => separator)
       .addSectionComponents((section) =>
-       section.addTextDisplayComponents((text) => text.setContent(`Outra coisa aqui`),
-       (text) => text.setContent(`Continuando mais algo`))
-)
+        section
+          .addTextDisplayComponents(
+            (text) => text.setContent(`Outra coisa aqui`),
+            (text) => text.setContent(`Continuando mais algo`),
+          )
+          .setButtonAccessory((button) =>
+            button
+              .setCustomId("teste_1")
+              .setLabel(`Comprar`)
+              .setStyle(ButtonStyle.Primary),
+          ),
+      )
       .addSeparatorComponents((separator) => separator)
       .addActionRowComponents((row) =>
         row.setComponents(
@@ -28,9 +37,9 @@ module.exports = {
         ),
       );
 
-      await interaction.reply({
-        components: [container],
-        flags: MessageFlags.IsComponentV2
-      })
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+    });
   },
 };
