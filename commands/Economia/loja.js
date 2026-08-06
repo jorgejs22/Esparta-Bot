@@ -8,7 +8,7 @@ const {
   StringSelectMenuOptionBuilder,
   StringSelectMenuBuilder,
   ContainerBuilder,
-  MessageFlags
+  MessageFlags,
 } = require("discord.js");
 
 const { Database } = require("../../database");
@@ -100,6 +100,24 @@ module.exports = {
       return;
     }
 
+    const menuRow = new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId("page_2")
+        .setPlaceholder("Acesse outras paginas da loja")
+        .addOptions([
+          {
+            label: "Itens e serviços",
+            value: "itens",
+            emoji: "📦",
+          },
+          {
+            label: "Fazendas",
+            value: "fazenda",
+            emoji: "🌱",
+          },
+        ]),
+    );
+
     const container = new ContainerBuilder().setAccentColor(0xd4af37);
     container.addTextDisplayComponents((text) =>
       text.setContent(`# Mercado do Império Espartano`),
@@ -116,11 +134,9 @@ module.exports = {
                                                                                 
                📂 Utilize o menu abaixo para navegar entre as categorias.
                                                                                                 
-     **Selecione uma opção para continuar.**`)
-      );
-    container.addActionRowComponents(row =>
-        row.setComponents(menuRow)
-    )
+     **Selecione uma opção para continuar.**`),
+    );
+    container.addActionRowComponents((row) => row.setComponents(menuRow));
     container.addSeparatorComponents((separator) => separator);
 
     const embed = new EmbedBuilder()
@@ -142,24 +158,6 @@ module.exports = {
         text: `A inflação atual é de ${inflacaoParaExibir.toFixed(2)}%`,
       })
       .setTimestamp();
-
-    const menuRow = new ActionRowBuilder().addComponents(
-      new StringSelectMenuBuilder()
-        .setCustomId("page_2")
-        .setPlaceholder("Acesse outras paginas da loja")
-        .addOptions([
-          {
-            label: "Itens e serviços",
-            value: "itens",
-            emoji: "📦",
-          },
-          {
-            label: "Fazendas",
-            value: "fazenda",
-            emoji: "🌱",
-          },
-        ]),
-    );
 
     const response = await interaction.reply({
       components: [container],
