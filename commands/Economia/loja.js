@@ -129,17 +129,22 @@ module.exports = {
         💰 Os valores são ajustados automaticamente conforme a inflação atual.
         📊 O estoque reflete a disponibilidade em tempo real.`,
       fazenda: `🌱 **Propriedades Agrícolas**
-      Adquira fazendas e produza recursos de forma contínua.
       
-        📈 Cada propriedade gera **200kg por semana** automaticamente.
-        📦 A produção é armazenada no inventário do proprietário.
-                                                      
-         💼 Os produtos podem ser:
-            • Vendidos ao governo
-            • Comercializados com outros cidadãos
-            • Armazenados para uso futuro
-                                                                                                                                                      
-      ⚠️ A disponibilidade varia conforme a região e tipo de produção.`,
+      Adquira terras produtivas e gerencie sua própria produção agrícola.
+      
+      📈 Cada plantação possui:
+      • Tipo de cultura
+      • Tempo de cultivo
+      • Rendimento por colheita
+      
+      📦 A produção obtida é armazenada no inventário do proprietário.
+      
+      💼 Os recursos podem ser:
+      • Vendidos ao governo
+      • Comercializados com outros cidadãos
+      • Utilizados em sistemas de produção
+      
+      ⚠️ A disponibilidade varia conforme a região e tipo de produção`,
       inicio: `Bem-vindo ao sistema econômico oficial de Esparta.
         
         Aqui você pode adquirir **itens, serviços e propriedades estratégicas** que fortalecem sua posição no Império.
@@ -157,12 +162,11 @@ module.exports = {
       const container = new ContainerBuilder().setAccentColor(0xd4af37);
 
       container.addTextDisplayComponents((text) =>
-        text.setContent(`# Mercado do Império Espartano`),
+        text.setContent(`# Mercado do ${servidor}`),
       );
       container.addSeparatorComponents((separator) => separator);
       container.addTextDisplayComponents((text) => text.setContent(apresentacao[categoria]));
       container.addActionRowComponents((row) => row.setComponents(menuRow));
-      container.addSeparatorComponents((separator) => separator);
 
       if (categoria === "itens") {
         if (itens.length === 0) {
