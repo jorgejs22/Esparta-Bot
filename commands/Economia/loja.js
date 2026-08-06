@@ -100,6 +100,11 @@ module.exports = {
       return;
     }
 
+    function adicionarFooter(container) {
+      container.addSeparatorComponents((separator) => separator)
+      container.addTextDisplayComponents((text) =>
+      text.setContent(`-# A inflação atual é de ${inflacaoParaExibir.toFixed(2)} - Ministério do Comércio e Finanças`))
+    }
     const menuRow = new StringSelectMenuBuilder()
       .setCustomId("page_2")
       .setPlaceholder("Acesse outras paginas da loja")
@@ -116,6 +121,27 @@ module.exports = {
         },
       ]);
 
+    const apresentacao = {
+      itens: `📦 **Itens e Serviços disponíveis**
+        
+        Adquira recursos essenciais para sua jornada no Império.
+                                
+        💰 Os valores são ajustados automaticamente conforme a inflação atual.
+        📊 O estoque reflete a disponibilidade em tempo real.`,
+      fazendas: ``,
+      inicio: `Bem-vindo ao sistema econômico oficial de Esparta.
+        
+        Aqui você pode adquirir **itens, serviços e propriedades estratégicas** que fortalecem sua posição no Império.
+        
+        ⚖️ **Sistema dinâmico ativo**
+        • Preços ajustados pela inflação
+        • Estoque baseado na disponibilidade real
+        
+        📂 Utilize o menu abaixo para navegar entre as categorias.
+        
+        **Selecione uma opção para continuar.**`,
+    };
+
     function montarContainer(categoria) {
       const container = new ContainerBuilder().setAccentColor(0xd4af37);
 
@@ -123,19 +149,7 @@ module.exports = {
         text.setContent(`# Mercado do Império Espartano`),
       );
       container.addSeparatorComponents((separator) => separator);
-      container.addTextDisplayComponents((text) =>
-        text.setContent(`Bem-vindo ao sistema econômico oficial de Esparta.
-
-Aqui você pode adquirir **itens, serviços e propriedades estratégicas** que fortalecem sua posição no Império.
-
-⚖️ **Sistema dinâmico ativo**
-• Preços ajustados pela inflação
-• Estoque baseado na disponibilidade real
-
-📂 Utilize o menu abaixo para navegar entre as categorias.
-
-**Selecione uma opção para continuar.**`),
-      );
+      container.addTextDisplayComponents((text) => text.setContent());
       container.addActionRowComponents((row) => row.setComponents(menuRow));
       container.addSeparatorComponents((separator) => separator);
 
@@ -147,7 +161,7 @@ Aqui você pode adquirir **itens, serviços e propriedades estratégicas** que f
         } else {
           itens.forEach((item) => {
             const texto = `**${money_symbol}${item.preco_atual} - ${item.nome}**
-\`${item.descricao}\`
+-# ${item.descricao}
 📦 Estoque: ${item.estoque}`;
 
             container.addSectionComponents((section) =>
@@ -162,7 +176,7 @@ Aqui você pode adquirir **itens, serviços e propriedades estratégicas** que f
                     .setStyle(ButtonStyle.Primary),
                 ),
             );
-            container.addSeparatorComponents((separator) => separator);
+            adicionarFooter(container);
           });
         }
       }
@@ -181,8 +195,7 @@ Aqui você pode adquirir **itens, serviços e propriedades estratégicas** que f
             const precoAtual = calcularPreco(f.preco_base, inflacao);
             const disponivel = f.quantidade > 0;
             const texto =
-              `${emoji} **Fazenda de ${f.tipo_produto} (${f.provincia})**
-              ${money_symbol}${precoAtual}
+              `${emoji} **Fazenda de ${f.tipo_produto} (${f.provincia}) - ${money_symbol}${precoAtual}**
 📦 Disponíveis: ${f.quantidade}
 ${disponivel ? "" : "❌ Indisponível"}`.trim();
 
@@ -198,7 +211,7 @@ ${disponivel ? "" : "❌ Indisponível"}`.trim();
                     .setStyle(ButtonStyle.Secondary),
                 ),
             );
-            container.addSeparatorComponents((separator) => separator);
+            adicionarFooter(container);
           });
         }
       }
@@ -207,7 +220,7 @@ ${disponivel ? "" : "❌ Indisponível"}`.trim();
     }
 
     const response = await interaction.reply({
-      components: [montarContainer("itens")],
+      components: [montarContainer("inicio")],
       flags: MessageFlags.IsComponentsV2,
     });
 
