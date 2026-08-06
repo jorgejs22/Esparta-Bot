@@ -100,8 +100,7 @@ module.exports = {
       return;
     }
 
-    const menuRow = new ActionRowBuilder().addComponents(
-      new StringSelectMenuBuilder()
+    const menuRow = new StringSelectMenuBuilder()
         .setCustomId("page_2")
         .setPlaceholder("Acesse outras paginas da loja")
         .addOptions([
