@@ -103,7 +103,7 @@ module.exports = {
     function adicionarFooter(container) {
       container.addSeparatorComponents((separator) => separator)
       container.addTextDisplayComponents((text) =>
-      text.setContent(`-# ⚖️ Ministério do Comércio e Finanças • Inflação: ${inflacaoParaExibir.toFixed(2)}`)
+      text.setContent(`-# ⚖️ Ministério do Comércio e Finanças • Inflação: ${inflacaoParaExibir.toFixed(2)}%`)
     )
     }
     const menuRow = new StringSelectMenuBuilder()
