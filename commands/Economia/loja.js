@@ -119,7 +119,7 @@ module.exports = {
      **Selecione uma opção para continuar.**`)
       );
     container.addActionRowComponents(row =>
-        row.setComponents(menuRow);
+        row.setComponents(menuRow)
     )
     container.addSeparatorComponents((separator) => separator);
 
