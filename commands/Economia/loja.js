@@ -128,7 +128,18 @@ module.exports = {
                                 
         💰 Os valores são ajustados automaticamente conforme a inflação atual.
         📊 O estoque reflete a disponibilidade em tempo real.`,
-      fazendas: ``,
+      fazenda: `🌱 **Propriedades Agrícolas**
+      Adquira fazendas e produza recursos de forma contínua.
+      
+        📈 Cada propriedade gera **200kg por semana** automaticamente.
+        📦 A produção é armazenada no inventário do proprietário.
+                                                      
+         💼 Os produtos podem ser:
+            • Vendidos ao governo
+            • Comercializados com outros cidadãos
+            • Armazenados para uso futuro
+                                                                                                                                                      
+      ⚠️ A disponibilidade varia conforme a região e tipo de produção.`,
       inicio: `Bem-vindo ao sistema econômico oficial de Esparta.
         
         Aqui você pode adquirir **itens, serviços e propriedades estratégicas** que fortalecem sua posição no Império.
@@ -149,7 +160,7 @@ module.exports = {
         text.setContent(`# Mercado do Império Espartano`),
       );
       container.addSeparatorComponents((separator) => separator);
-      container.addTextDisplayComponents((text) => text.setContent());
+      container.addTextDisplayComponents((text) => text.setContent(apresemtacao[categoria]));
       container.addActionRowComponents((row) => row.setComponents(menuRow));
       container.addSeparatorComponents((separator) => separator);
 
@@ -176,7 +187,6 @@ module.exports = {
                     .setStyle(ButtonStyle.Primary),
                 ),
             );
-            adicionarFooter(container);
           });
         }
       }
@@ -211,11 +221,11 @@ ${disponivel ? "" : "❌ Indisponível"}`.trim();
                     .setStyle(ButtonStyle.Secondary),
                 ),
             );
-            adicionarFooter(container);
           });
         }
       }
-
+      
+      adicionarFooter(container);
       return container;
     }
 
