@@ -157,9 +157,9 @@ module.exports = {
       })
       .setTimestamp();
 
-    const response = await interaction.reply({
+     await interaction.reply({
       components: [container],
-      flags: MessageFlags.isComponentV2,
+      flags: MessageFlags.IsComponentV2,
       fetchReply: true,
     });
 
