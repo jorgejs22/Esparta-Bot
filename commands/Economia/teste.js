@@ -11,15 +11,18 @@ module.exports = {
     .setName("teste")
     .setDescription("Este comando usa Componente V2"),
   async execute(interaction) {
+    let estoque = "❌ Indisponíve";
+
     const container = new ContainerBuilder()
       .setAccentColor(0x0099ff)
-      .addTextDisplayComponents((text) => text.setContent(`# Algo aqui`))
+      .addTextDisplayComponents((text) => text.setContent(`### Algo aqui`))
       .addSeparatorComponents((separator) => separator)
       .addSectionComponents((section) =>
         section
           .addTextDisplayComponents(
-            (text) => text.setContent(`Outra coisa aqui`),
-            (text) => text.setContent(`Continuando mais algo`),
+            (text) => text.setContent(`Fazenda de Café (Zeruz)`),
+            (text) => text.setContent(`750`),
+            (text) => text.setContent(`${estoque}`)
           )
           .setButtonAccessory((button) =>
             button
