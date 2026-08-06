@@ -147,8 +147,8 @@ Aqui você pode adquirir **itens, serviços e propriedades estratégicas** que f
         } else {
           itens.forEach((item) => {
             const texto = `**${item.nome}**
-💰 ${money_symbol}${item.preco_atual}
-📝 ${item.descricao}
+ ${money_symbol}${item.preco_atual}
+\`${item.descricao}\`
 📦 Estoque: ${item.estoque}`;
 
             container.addSectionComponents((section) =>
@@ -183,10 +183,10 @@ Aqui você pode adquirir **itens, serviços e propriedades estratégicas** que f
             const disponivel = f.quantidade > 0;
             const texto =
               `${emoji} **Fazenda de ${f.tipo_produto} (${f.provincia})**
-💰 ${money_symbol}${precoAtual}
+              ${money_symbol}${precoAtual}
 📦 Disponíveis: ${f.quantidade}
-📈 Produção: 200kg/semana
 ${disponivel ? "" : "❌ Indisponível"}`.trim();
+${disponivel ? "" : "📉 Estoque esgotado"}
 
             container.addSectionComponents((section) =>
               section
