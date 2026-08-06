@@ -101,66 +101,116 @@ module.exports = {
     }
 
     const menuRow = new StringSelectMenuBuilder()
-        .setCustomId("page_2")
-        .setPlaceholder("Acesse outras paginas da loja")
-        .addOptions([
-          {
-            label: "Itens e serviços",
-            value: "itens",
-            emoji: "📦",
-          },
-          {
-            label: "Fazendas",
-            value: "fazenda",
-            emoji: "🌱",
-          },
-        ])
+      .setCustomId("page_2")
+      .setPlaceholder("Acesse outras paginas da loja")
+      .addOptions([
+        {
+          label: "Itens e serviços",
+          value: "itens",
+          emoji: "📦",
+        },
+        {
+          label: "Fazendas",
+          value: "fazenda",
+          emoji: "🌱",
+        },
+      ]);
 
-    const container = new ContainerBuilder().setAccentColor(0xd4af37);
-    container.addTextDisplayComponents((text) =>
-      text.setContent(`# Mercado do Império Espartano`),
-    );
-    container.addSeparatorComponents((separator) => separator);
-    container.addTextDisplayComponents((text) =>
-      text.setContent(`Bem-vindo ao sistema econômico oficial de Esparta.
-                
-                  Aqui você pode adquirir **itens, serviços e propriedades estratégicas** que fortalecem sua posição no Império.
-                                
-                 ⚖️ **Sistema dinâmico ativo**
-                  • Preços ajustados pela inflação
-                  • Estoque baseado na disponibilidade real
-                                                                                
-               📂 Utilize o menu abaixo para navegar entre as categorias.
-                                                                                                
-     **Selecione uma opção para continuar.**`),
-    );
-    container.addActionRowComponents((row) => row.setComponents(menuRow));
-    container.addSeparatorComponents((separator) => separator);
+    function montarContainer(categoria) {
+      const container = new ContainerBuilder().setAccentColor(0xd4af37);
 
-    const embed = new EmbedBuilder()
-      .setTitle("🏛️ Mercado do Império Espartano")
-      .setDescription(
-        `Bem-vindo ao sistema econômico oficial de Esparta.
+      container.addTextDisplayComponents((text) =>
+        text.setContent(`# Mercado do Império Espartano`),
+      );
+      container.addSeparatorComponents((separator) => separator);
+      container.addTextDisplayComponents((text) =>
+        text.setContent(`Bem-vindo ao sistema econômico oficial de Esparta.
 
-                Aqui você pode adquirir **itens, serviços e propriedades estratégicas** que fortalecem sua posição no Império.
+Aqui você pode adquirir **itens, serviços e propriedades estratégicas** que fortalecem sua posição no Império.
 
-                ⚖️ **Sistema dinâmico ativo**
-                • Preços ajustados pela inflação
-                • Estoque baseado na disponibilidade real
+⚖️ **Sistema dinâmico ativo**
+• Preços ajustados pela inflação
+• Estoque baseado na disponibilidade real
 
-                📂 Utilize o menu abaixo para navegar entre as categorias.
+📂 Utilize o menu abaixo para navegar entre as categorias.
 
-                **Selecione uma opção para continuar.**`,
-      )
-      .setFooter({
-        text: `A inflação atual é de ${inflacaoParaExibir.toFixed(2)}%`,
-      })
-      .setTimestamp();
+**Selecione uma opção para continuar.**`),
+      );
+      container.addActionRowComponents((row) => row.setComponents(menuRow));
+      container.addSeparatorComponents((separator) => separator);
 
-     await interaction.reply({
-      components: [container],
-      flags: MessageFlags.IsComponentV2,
-      fetchReply: true,
+      if (categoria === "itens") {
+        if (itens.length === 0) {
+          container.addTextDisplayComponents((text) =>
+            text.setContent(`📦 Nenhum item disponível no momento.`),
+          );
+        } else {
+          itens.forEach((item) => {
+            const texto = `**${item.nome}**
+💰 ${money_symbol}${item.preco_atual}
+📝 ${item.descricao}
+📦 Estoque: ${item.estoque}`;
+
+            container.addSectionComponents((section) =>
+              section
+                .addTextDisplayComponents((textDisplay) =>
+                  textDisplay.setContent(texto),
+                )
+                .setButtonAccessory((button) =>
+                  button
+                    .setCustomId(`comprar_${item.id}`)
+                    .setLabel("Comprar")
+                    .setStyle(ButtonStyle.Primary),
+                ),
+            );
+            container.addSeparatorComponents((separator) => separator);
+          });
+        }
+      }
+
+      if (categoria === "fazenda") {
+        const fazendas = obterFazendas(Database);
+
+        if (fazendas.length === 0) {
+          container.addTextDisplayComponents((text) =>
+            text.setContent(`🌱 Nenhuma fazenda cadastrada no momento.`),
+          );
+        } else {
+          fazendas.forEach((f) => {
+            const produto = f.tipo_produto.toLowerCase().trim();
+            const emoji = emojiPorProduto[produto] || "🌱";
+            const precoAtual = calcularPreco(f.preco_base, inflacao);
+            const disponivel = f.quantidade > 0;
+            const texto =
+              `${emoji} **Fazenda de ${f.tipo_produto} (${f.provincia})**
+💰 ${money_symbol}${precoAtual}
+📦 Disponíveis: ${f.quantidade}
+📈 Produção: 200kg/semana
+${disponivel ? "" : "❌ Indisponível"}`.trim();
+
+            container.addSectionComponents((section) =>
+              section
+                .addTextDisplayComponents((textDisplay) =>
+                  textDisplay.setContent(texto),
+                )
+                .setButtonAccessory((button) =>
+                  button
+                    .setCustomId(`fazenda_${f.id}`)
+                    .setLabel("Ver")
+                    .setStyle(ButtonStyle.Secondary),
+                ),
+            );
+            container.addSeparatorComponents((separator) => separator);
+          });
+        }
+      }
+
+      return container;
+    }
+
+    const response = await interaction.reply({
+      components: [montarContainer("itens")],
+      flags: MessageFlags.IsComponentsV2,
     });
 
     const collector = response.createMessageComponentCollector({
@@ -177,95 +227,15 @@ module.exports = {
       }
 
       if (int.values[0] === "itens") {
-        const pagina_1 = new EmbedBuilder()
-          .setAuthor({
-            name: `Mercado do ${servidor.name}`,
-            iconURL: servidor.iconURL(),
-          })
-          .setDescription(
-            `📦 **Itens e Serviços disponíveis**
-
-                        Adquira recursos essenciais para sua jornada no Império.
-
-                        💰 Os valores são ajustados automaticamente conforme a inflação atual.
-                        📊 O estoque reflete a disponibilidade em tempo real.
-
-                        Use \`/comprar\` para adquirir um item/propriedade.`,
-          )
-
-          .addFields(
-            itens.map((i) => ({
-              name: `${money_symbol}${i.preco_atual} - ${i.nome}`,
-              value: `${i.descricao}\n**Estoque:** ${i.estoque}`,
-              inline: false,
-            })),
-          )
-          .setFooter({
-            text: `A inflação atual é de ${inflacaoParaExibir.toFixed(2)}%`,
-          })
-          .setTimestamp();
-
         await int.update({
-          embeds: [pagina_1],
-          components: [menuRow],
+          components: [montarContainer("itens")],
+          flags: MessageFlags.IsComponentsV2,
         });
       }
       if (int.values[0] === "fazenda") {
-        const fazendas = obterFazendas(Database);
-
-        const pagina_2 = new EmbedBuilder().setAuthor({
-          name: `Mercado do ${servidor.name}`,
-          iconURL: servidor.iconURL(),
-        })
-          .setDescription(`🌱 **Propriedades Agrícolas**\nAdquira fazendas e produza recursos de forma contínua.
-
-                        📈 Cada propriedade gera **200kg por semana** automaticamente.
-                        📦 A produção é armazenada no inventário do proprietário.
-
-                        💼 Os produtos podem ser:
-                        • Vendidos ao governo
-                        • Comercializados com outros cidadãos
-                        • Armazenados para uso futuro
-
-                        ⚠️ A disponibilidade varia conforme a região e tipo de produção.\n\n`);
-        if (fazendas.length === 0) {
-          pagina_2.addFields({
-            name: "🌱 Nenhuma fazenda registrada",
-            value: "Nenhuma propriedade agrícola foi cadastrada no sistema.",
-            inline: false,
-          });
-        } else {
-          pagina_2.addFields(
-            fazendas.map((f) => {
-              const produto = f.tipo_produto.toLowerCase().trim();
-              const emoji = emojiPorProduto[produto] || "🌱";
-
-              const preco_atual = calcularPreco(f.preco_base, inflacao);
-              const disponivel = f.quantidade > 0;
-
-              return {
-                name: `${emoji} Fazenda de ${f.tipo_produto} (${f.provincia}) — ${money_symbol}${preco_atual}`,
-                value: disponivel
-                  ? [
-                      `📦 **Disponíveis:** ${f.quantidade}`,
-                      `📈 **Produção:** 200kg/semana`,
-                    ].join("\n")
-                  : [`❌ **Indisponível**`, `📉 Estoque esgotado`].join("\n"),
-                inline: false,
-              };
-            }),
-          );
-        }
-
-        pagina_2
-          .setFooter({
-            text: `A inflação atual é de ${inflacaoParaExibir.toFixed(2)}%`,
-          })
-          .setTimestamp();
-
         await int.update({
-          embeds: [pagina_2],
-          components: [menuRow],
+          components: [montarContainer("fazenda")],
+          flags: MessageFlags.IsComponentsV2,
         });
       }
     });
