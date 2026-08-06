@@ -114,8 +114,7 @@ module.exports = {
             value: "fazenda",
             emoji: "🌱",
           },
-        ]),
-    );
+        ])
 
     const container = new ContainerBuilder().setAccentColor(0xd4af37);
     container.addTextDisplayComponents((text) =>
